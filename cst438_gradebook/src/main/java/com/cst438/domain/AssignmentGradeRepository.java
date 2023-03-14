@@ -1,5 +1,8 @@
 package com.cst438.domain;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -10,5 +13,8 @@ public interface AssignmentGradeRepository extends CrudRepository <AssignmentGra
 	AssignmentGrade findByAssignmentIdAndStudentEmail(
 			@Param("assignmentId") int assignmentId, 
 			@Param("email") String email );
+	
+	@Query("select a from AssignmentGrade a where a.assignment.id=:assignmentId")
+	List<AssignmentGrade> findAllById(@Param("assignmentId") int assignmentId);
 	
 }

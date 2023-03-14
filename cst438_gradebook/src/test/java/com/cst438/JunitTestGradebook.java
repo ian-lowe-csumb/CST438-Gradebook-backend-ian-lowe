@@ -17,10 +17,12 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.cst438.controllers.GradeBookController;
 import com.cst438.domain.Assignment;
+import com.cst438.domain.AssignmentDTO;
 import com.cst438.domain.AssignmentGrade;
 import com.cst438.domain.AssignmentGradeRepository;
 import com.cst438.domain.AssignmentRepository;
@@ -73,6 +75,172 @@ public class JunitTestGradebook {
 
 	@Autowired
 	private MockMvc mvc;
+	
+	@Test
+	public void addAssignment() throws Exception {
+		
+		MockHttpServletResponse response;
+
+		// mock database data
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+		
+		given(courseRepository.findById(TEST_COURSE_ID)).willReturn(Optional.of(course));
+		
+		AssignmentDTO adto = new AssignmentDTO();
+		adto.assignmentName = "NewAssignment";
+		adto.dueDate = "2022-01-01";
+		
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .post("/course/" + String.valueOf(TEST_COURSE_ID) + "/add")
+			      .content(asJsonString(adto))
+			      .contentType(MediaType.APPLICATION_JSON)
+			      .accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+
+		// a call to create an assignment should return 200
+		assertEquals(200, response.getStatus());
+		
+		// saving the new assignment should happen on success
+		verify(assignmentRepository, times(1)).save(any());
+	}
+	
+	@Test
+	public void deleteAssignment() throws Exception {
+		
+		MockHttpServletResponse response;
+
+		// mock database data
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+
+		Enrollment enrollment = new Enrollment();
+		enrollment.setCourse(course);
+		course.getEnrollments().add(enrollment);
+		enrollment.setId(TEST_COURSE_ID);
+		enrollment.setStudentEmail(TEST_STUDENT_EMAIL);
+		enrollment.setStudentName(TEST_STUDENT_NAME);
+		
+		// assignment that shouldn't be able to be deleted
+		Assignment assignment = new Assignment();
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment);
+		// set dueDate to 1 week before now.
+		assignment.setDueDate(new java.sql.Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000));
+		assignment.setId(1);
+		assignment.setName("Assignment 1");
+		assignment.setNeedsGrading(1);
+		
+		AssignmentGrade ag = new AssignmentGrade();
+		ag.setAssignment(assignment);
+		ag.setId(1);
+		ag.setScore("");
+		ag.setStudentEnrollment(enrollment);
+		
+		// assignment that should be able to be deleted
+		Assignment assignment2 = new Assignment();
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment2);
+		// set dueDate to 1 week before now.
+		assignment.setDueDate(new java.sql.Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000));
+		assignment.setId(2);
+		assignment.setName("Assignment 2");
+		assignment.setNeedsGrading(1);
+		
+		List<AssignmentGrade> ags = new java.util.ArrayList<AssignmentGrade>();
+		ags.add(ag);
+
+		// given -- stubs for database repositories that return test data
+		given(courseRepository.findById(TEST_COURSE_ID)).willReturn(Optional.of(course));
+		given(assignmentRepository.findById(1)).willReturn(Optional.of(assignment));
+		given(assignmentRepository.findById(2)).willReturn(Optional.of(assignment2));
+		given(assignmentGradeRepository.findAllById(1)).willReturn(ags);
+
+		// end of mock data
+		
+		// trying to delete an assignment assigned to students should return 400
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .delete("/course/" + String.valueOf(TEST_COURSE_ID) + "/delete/1"))
+				.andReturn().getResponse();
+		
+		assertEquals(400, response.getStatus());
+		
+		// delete should not be called
+		verify(assignmentRepository, times(0)).delete(any());
+		
+		// trying to delete an assignment should work as the assignment isn't assigned to any students
+		response = mvc.perform(
+				MockMvcRequestBuilders
+			      .delete("/course/" + String.valueOf(TEST_COURSE_ID) + "/delete/2"))
+				.andReturn().getResponse();
+		
+		assertEquals(200, response.getStatus());
+		
+		// delete should be called once on the assignment
+		verify(assignmentRepository, times(1)).delete(any());
+	}
+	
+	@Test
+	public void editAssignment() throws Exception {
+		
+		MockHttpServletResponse response;
+
+		// mock database data
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+
+		Assignment assignment = new Assignment();
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment);
+		// set dueDate to 1 week before now.
+		assignment.setDueDate(java.sql.Date.valueOf("2022-01-01"));
+		assignment.setId(1);
+		assignment.setName("Assignment 1");
+		assignment.setNeedsGrading(1);
+
+		
+		// given -- stubs for database repositories that return test data
+		given(courseRepository.findById(TEST_COURSE_ID)).willReturn(Optional.of(course));
+		given(assignmentRepository.findById(1)).willReturn(Optional.of(assignment));
+
+		// end of mock data
+		
+		AssignmentDTO adto = new AssignmentDTO();
+		adto.assignmentName = "EditedName";
+		adto.dueDate = "2022-02-02";
+		
+		// send updates to server
+		response = mvc
+				.perform(MockMvcRequestBuilders.put("/course/" + String.valueOf(TEST_COURSE_ID) + "/update/1").accept(MediaType.APPLICATION_JSON)
+				.content(asJsonString(adto)).contentType(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+
+		assertEquals(200, response.getStatus());
+		
+		// verify that the assignment values were updated with what was passed to the server
+		assertEquals(assignment.getName(), adto.assignmentName);
+		assertEquals(String.valueOf(assignment.getDueDate()), adto.dueDate);
+		
+	}
 
 	@Test
 	public void gradeAssignment() throws Exception {
