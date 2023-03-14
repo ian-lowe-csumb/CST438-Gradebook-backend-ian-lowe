@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,8 +15,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-
 import com.cst438.domain.Assignment;
+import com.cst438.domain.AssignmentDTO;
 import com.cst438.domain.AssignmentListDTO;
 import com.cst438.domain.AssignmentGrade;
 import com.cst438.domain.AssignmentGradeRepository;
@@ -87,6 +88,77 @@ public class GradeBookController {
 			gradebook.grades.add(grade);
 		}
 		return gradebook;
+	}
+	
+	@PostMapping("/course/{course_id}/add")
+	public void addAssignment(@RequestBody AssignmentDTO assignmentDTO, @PathVariable int course_id) {
+		
+		// check that this request is from the course instructor 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		
+		// grab requested course and validate permissions if it exists
+		Course c = courseRepository.findById(course_id).orElse(null);
+		
+		if (!c.getInstructor().equals(email)) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
+		
+		// create new assignment
+		Assignment assignment = new Assignment();
+		assignment.setName(assignmentDTO.assignmentName);
+		assignment.setDueDate(java.sql.Date.valueOf(assignmentDTO.dueDate));
+		assignment.setCourse(c);
+		assignmentRepository.save(assignment);
+		
+	}
+	
+	@DeleteMapping("/course/{course_id}/delete/{assignment_id}")
+	public void deleteAssignment(@PathVariable int course_id, @PathVariable int assignment_id) {
+		
+		// check that this request is from the course instructor 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		
+		// grab requested course and validate permissions if it exists
+		Course c = courseRepository.findById(course_id).orElse(null);
+		
+		if (!c.getInstructor().equals(email)) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
+		
+		// delete requested assignment if grades don't exist for it
+		List<AssignmentGrade> assignment_grades = assignmentGradeRepository.findAllById(assignment_id);
+		if(assignment_grades.isEmpty()) {
+			Assignment a = assignmentRepository.findById(assignment_id).orElse(null);
+			assignmentRepository.delete(a);
+		} else {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Trying to delete assignment that has grade entries.");
+		}
+		
+	}
+	
+	@PutMapping("/course/{course_id}/update/{assignment_id}")
+	public void updateAssignment(@RequestBody AssignmentDTO assignmentDTO, @PathVariable int course_id, @PathVariable int assignment_id ) {
+		
+		// check that this request is from the course instructor 
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+				
+		// grab requested course and validate permissions if it exists
+		Course c = courseRepository.findById(course_id).orElse(null);
+				
+		if (!c.getInstructor().equals(email)) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
+		
+		// update assignment if it exists
+		Assignment a = assignmentRepository.findById(assignment_id).orElse(null);
+		if(a != null) {
+			a.setName(assignmentDTO.assignmentName);
+			a.setDueDate(java.sql.Date.valueOf(assignmentDTO.dueDate));
+			assignmentRepository.save(a);
+		} else {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Trying to update assignment that doesn't exist.");
+		}
+		
 	}
 	
 	@PostMapping("/course/{course_id}/finalgrades")
