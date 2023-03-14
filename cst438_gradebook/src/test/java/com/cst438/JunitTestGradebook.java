@@ -98,7 +98,7 @@ public class JunitTestGradebook {
 		
 		response = mvc.perform(
 				MockMvcRequestBuilders
-			      .post("/course/40442/add")
+			      .post("/course/" + String.valueOf(TEST_COURSE_ID) + "/add")
 			      .content(asJsonString(adto))
 			      .contentType(MediaType.APPLICATION_JSON)
 			      .accept(MediaType.APPLICATION_JSON))
@@ -173,7 +173,7 @@ public class JunitTestGradebook {
 		// trying to delete an assignment assigned to students should return 400
 		response = mvc.perform(
 				MockMvcRequestBuilders
-			      .delete("/course/40442/delete/1"))
+			      .delete("/course/" + String.valueOf(TEST_COURSE_ID) + "/delete/1"))
 				.andReturn().getResponse();
 		
 		assertEquals(400, response.getStatus());
@@ -184,7 +184,7 @@ public class JunitTestGradebook {
 		// trying to delete an assignment should work as the assignment isn't assigned to any students
 		response = mvc.perform(
 				MockMvcRequestBuilders
-			      .delete("/course/40442/delete/2"))
+			      .delete("/course/" + String.valueOf(TEST_COURSE_ID) + "/delete/2"))
 				.andReturn().getResponse();
 		
 		assertEquals(200, response.getStatus());
@@ -230,7 +230,7 @@ public class JunitTestGradebook {
 		
 		// send updates to server
 		response = mvc
-				.perform(MockMvcRequestBuilders.put("/course/40442/update/1").accept(MediaType.APPLICATION_JSON)
+				.perform(MockMvcRequestBuilders.put("/course/" + String.valueOf(TEST_COURSE_ID) + "/update/1").accept(MediaType.APPLICATION_JSON)
 				.content(asJsonString(adto)).contentType(MediaType.APPLICATION_JSON))
 				.andReturn().getResponse();
 

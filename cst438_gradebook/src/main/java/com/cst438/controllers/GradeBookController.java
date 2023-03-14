@@ -99,6 +99,10 @@ public class GradeBookController {
 		// grab requested course and validate permissions if it exists
 		Course c = courseRepository.findById(course_id).orElse(null);
 		
+		if (c == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Trying to add assignment for course that doesn't exist.");
+		}
+		
 		if (!c.getInstructor().equals(email)) {
 			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
 		}
@@ -120,6 +124,10 @@ public class GradeBookController {
 		
 		// grab requested course and validate permissions if it exists
 		Course c = courseRepository.findById(course_id).orElse(null);
+		
+		if (c == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Trying to delete assignment for course that doesn't exist.");
+		}
 		
 		if (!c.getInstructor().equals(email)) {
 			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
@@ -144,6 +152,10 @@ public class GradeBookController {
 				
 		// grab requested course and validate permissions if it exists
 		Course c = courseRepository.findById(course_id).orElse(null);
+		
+		if (c == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Trying to update assignment for course that doesn't exist.");
+		}
 				
 		if (!c.getInstructor().equals(email)) {
 			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
