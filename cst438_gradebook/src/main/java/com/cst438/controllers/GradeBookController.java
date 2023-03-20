@@ -112,6 +112,7 @@ public class GradeBookController {
 		assignment.setName(assignmentDTO.assignmentName);
 		assignment.setDueDate(java.sql.Date.valueOf(assignmentDTO.dueDate));
 		assignment.setCourse(c);
+		assignment.setNeedsGrading(1);
 		assignmentRepository.save(assignment);
 		
 	}
